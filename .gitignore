@@ -1,0 +1,70 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Firebase secrets
+serviceAccountKey.json
+firebase-adminsdk-*.json
+
+# Expo
+.expo/
+.expo-shared/
+dist/
+web-build/
+
+# Expo / React Native
+*.jks
+*.keystore
+*.p8
+*.p12
+*.mobileprovision
+
+# Android
+android/.gradle/
+android/local.properties/
+android/app/build/
+android/build/
+
+# iOS
+ios/Pods/
+ios/build/
+
+# EAS
+.eas/
+.easignore
+
+# Build output
+build/
+lib/
+coverage/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Firebase local emulator data
+.firebase/
+
+# Firebase cache
+firebase-debug.log
