@@ -47,10 +47,15 @@
 
 ## M3 — Job catalogue
 
-- [ ] Greenhouse adapter.
-- [ ] Lever adapter.
-- [ ] Ashby adapter.
-- [ ] Normalization, deduplication, freshness, retries, and source URLs.
+- [x] Greenhouse, Lever, and Ashby source adapters with defensive parsing.
+- [x] Normalization, deterministic IDs, lightweight required-skill extraction, and batched Firestore writes.
+- [x] Read-only authenticated Discover screen with search, filters, details, and real application URLs.
+- [~] Greenhouse Airbnb is enabled by default; Lever and Ashby board identifiers are configurable and disabled until verified.
+- [~] Deploy `ingestJobsScheduled`; deployment is intentionally manual and requires the Firebase project billing plan to support scheduled Functions.
+- [x] Deterministic per-user recommendations generated from `users/{uid}` profile, reviewed resume data, and preferences.
+- [x] Discover listens only to `users/{uid}/jobRecommendations`; recommendation documents contain personalized job details.
+- [x] Profile changes fetch enabled external job boards in memory and generate user-scoped recommendations without the global `jobs` collection.
+- [~] Recommendation quality is intentionally lexical/rule-based in M3; embeddings, semantic ranking, and LLM explanations remain M4.
 
 ## M4 — Matching and recommendations
 

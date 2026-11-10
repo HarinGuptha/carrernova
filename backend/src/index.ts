@@ -2,9 +2,14 @@ import { getApps, initializeApp } from 'firebase-admin/app';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
 import { onObjectFinalized } from 'firebase-functions/v2/storage';
+import { onSchedule } from 'firebase-functions/v2/scheduler';
+import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { defineSecret } from 'firebase-functions/params';
 import { classifyAndExtractResume, hasMeaningfulExtraction, validateDocumentText } from './services/aiResume';
 import { extractResumeSections, extractResumeText } from './services/resumeParser';
+import { ingestJobs } from './jobs/ingest';
+import { generateUserRecommendations } from './jobs/match';
 
 if (getApps().length === 0) initializeApp();
 
@@ -81,6 +86,7 @@ export const processResume = onObjectFinalized({ secrets: [openRouterApiKey] }, 
       await storage.bucket(object.bucket).file(objectName).delete().catch((error) => {
         console.error(`[Resume] invalid upload cleanup failed: ${resumeId}`, error);
       });
+
       await resumeReference.set({
         extractionStatus: 'invalid',
         validationMessage,
@@ -112,6 +118,7 @@ export const processResume = onObjectFinalized({ secrets: [openRouterApiKey] }, 
           await storage.bucket().file(oldData.storagePath).delete().catch((error) => {
             console.error(`[Resume] old storage cleanup failed: ${oldResume.id}`, error);
           });
+
         }
         await oldResume.ref.delete();
         console.log(`[Resume] old resume removed: ${oldResume.id}`);
@@ -126,4 +133,103 @@ export const processResume = onObjectFinalized({ secrets: [openRouterApiKey] }, 
       updatedAt: FieldValue.serverTimestamp(),
     }, { merge: true });
   }
+});
+
+// Legacy/debug-only global catalogue refresh. Personalized recommendations do not use it.
+export const ingestJobsScheduled = onSchedule('every 6 hours', async () => {
+  try {
+    await ingestJobs();
+  } catch (error) {
+    console.error('[Jobs] ingestion failed:', error);
+    throw error;
+  }
+});
+
+// Legacy/debug-only endpoint. Normal recommendation generation fetches sources directly.
+export const ingestJobsManual = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'You must be signed in to trigger job ingestion.');
+  }
+
+  console.log('[Jobs] manual ingestion started');
+  try {
+    const result = await ingestJobs();
+    console.log(`[Jobs] manual ingestion completed: ${result.fetched}`);
+    return result;
+  } catch (error) {
+    console.error('[Jobs] manual ingestion failed:', error);
+    throw new HttpsError('internal', 'Job ingestion failed.');
+  }
+});
+
+export const generateRecommendationsOnProfileChange = onDocumentWritten({
+  document: 'users/{uid}',
+  memory: '1GiB',
+  timeoutSeconds: 540,
+}, async (event) => {
+  const after = event.data?.after;
+  const uid = event.params.uid;
+  console.log('[Match] profile trigger received:', {
+    uid,
+    profilePath: `users/${uid}`,
+    afterExists: Boolean(after?.exists),
+  });
+  if (!after?.exists) return;
+
+  const candidate = after.data() ?? {};
+  console.log('[Match] candidate profile loaded:', {
+    uid,
+    profilePath: `users/${uid}`,
+    hasPreferences: Boolean(candidate.preferences),
+    hasReviewedProfile: Boolean(candidate.reviewedProfile),
+  });
+  try {
+    const recommendationCount = await generateUserRecommendations(uid, candidate);
+    console.log('[Match] recommendations generated:', recommendationCount);
+  } catch (error) {
+    console.error('[Match] recommendation generation failed:', { uid, error });
+    throw error;
+  }
+});
+
+export const refreshPersonalizedRecommendations = onCall({
+  memory: '1GiB',
+  timeoutSeconds: 540,
+}, async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) {
+    throw new HttpsError('unauthenticated', 'You must be signed in to refresh job recommendations.');
+  }
+
+  const profileSnapshot = await firestore.doc(`users/${uid}`).get();
+  if (!profileSnapshot.exists) {
+    throw new HttpsError('failed-precondition', 'Complete your profile before refreshing job recommendations.');
+  }
+
+  const candidate = profileSnapshot.data() ?? {};
+  const preferences = candidate.preferences as Record<string, unknown> | undefined;
+  const reviewedProfile = candidate.reviewedProfile as Record<string, unknown> | undefined;
+  const requiredPreferences = ['targetRole', 'domain', 'location', 'workMode', 'experienceLevel'];
+  const missingPreferences = requiredPreferences.filter((field) => typeof preferences?.[field] !== 'string' || !preferences[field].trim());
+  const skills = Array.isArray(reviewedProfile?.skills)
+    ? reviewedProfile.skills.filter((skill): skill is string => typeof skill === 'string' && skill.trim().length > 0)
+    : [];
+
+  if (missingPreferences.length || !skills.length) {
+    throw new HttpsError(
+      'failed-precondition',
+      missingPreferences.length
+        ? `Save all preferences before refreshing job recommendations: ${missingPreferences.join(', ')}.`
+        : 'Review your resume skills before refreshing job recommendations.',
+    );
+  }
+
+  console.log('[Match] manual recommendation refresh started:', {
+    uid,
+    preferencesChecked: requiredPreferences.length,
+    skillsChecked: skills.length,
+  });
+  const recommendationCount = await generateUserRecommendations(uid, candidate);
+  console.log('[Match] manual recommendation refresh completed:', { uid, recommendationCount });
+  return { recommendationCount };
 });

@@ -154,10 +154,19 @@ export default function AppNavigator() {
       <SafeAreaView style={styles.safeArea}>
         <StatusBar style="dark" />
         {activeTab === 'Home' ? <HomeScreen onNavigate={setActiveTab} displayName={profile?.displayName ?? user.displayName ?? user.email?.split('@')[0]} /> : null}
-        {activeTab === 'Discover' ? <DiscoverScreen onProfilePress={() => setActiveTab('Profile')} /> : null}
+        {activeTab === 'Discover' ? <DiscoverScreen uid={user.uid} onProfilePress={() => setActiveTab('Profile')} /> : null}
         {activeTab === 'Roadmap' ? <RoadmapScreen /> : null}
         {activeTab === 'Profile' ? (
-          <ProfileScreen key={user.uid} profile={profile} isLoading={isProfileLoading} error={profileError} onProfileUpdated={(displayName) => setProfile((current) => current ? { ...current, displayName } : current)} onClose={() => setActiveTab('Home')} />
+          <ProfileScreen
+            key={user.uid}
+            profile={profile}
+            isLoading={isProfileLoading}
+            error={profileError}
+            onProfileUpdated={(displayName) => setProfile((current) => current ? { ...current, displayName } : current)}
+            onPreferencesUpdated={(preferences) => setProfile((current) => current ? { ...current, preferences } : current)}
+            onRecommendationsRefreshed={() => setActiveTab('Discover')}
+            onClose={() => setActiveTab('Home')}
+          />
         ) : null}
         <BottomTabBar activeTab={activeTab} onTabChange={setActiveTab} />
       </SafeAreaView>

@@ -56,3 +56,13 @@ LinkedIn and GitHub buttons are included in the UI, but their OAuth client secre
 ## MVP flow
 
 The first screen focuses on career readiness, a next action, job matches, and roadmap progress. The bottom navigation is wired for the Home, Discover, Roadmap, and Profile destinations so feature screens can be added without changing the dashboard's visual language.
+
+## M3 job ingestion
+
+Profile changes fetch enabled public Greenhouse, Lever, and Ashby boards directly in the backend. Jobs are normalized in memory, evaluated for the current user, and stored only in that user's recommendation subcollection. The enabled board identifiers are configured in `backend/src/jobs/companies.ts`.
+
+M3 intentionally does not implement embeddings, semantic matching, advanced ranking, or AI recommendations. Deploy Firebase Functions and rules manually after reviewing the changes.
+
+The recommendation fetch path also supports authorized public remote-job feeds from Himalayas, Remote OK, Jobicy, and Remotive, plus unauthenticated JobsForce India, Active Vacancies, 101 Careers, eGig, and RemoShift adapters. These feeds are normalized into the same personalized recommendation pipeline, deduplicated by canonical application URL, and retained only when they pass the relevance threshold. JobsForce India is India-focused; RemoShift is used only for remote postings. Provider terms, attribution requirements, rate limits, and availability still apply. YubHub is not enabled because its developer documentation requires an account/API access for REST feeds and no unauthenticated public JSON feed URL was verified. eGig uses its verified read-only JSON endpoint; an MCP-only integration was not added.
+
+Profile writes trigger deterministic recommendation generation in `users/{uid}/jobRecommendations`. Recommendation documents contain scores, matched/missing skills, reasons, and the normalized job display/application fields. Discover observes only this user-specific subcollection and does not depend on the global `jobs` collection. The legacy `ingestJobsScheduled` and `ingestJobsManual` exports remain debug-only global catalogue tools and are not required for recommendations.
