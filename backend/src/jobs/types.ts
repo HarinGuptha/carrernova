@@ -1,0 +1,72 @@
+export type JobSource = 'greenhouse' | 'lever' | 'ashby' | 'himalayas' | 'remoteok' | 'jobicy' | 'remotive' | 'jobsforceindia' | 'activevacancies' | '101careers' | 'egig' | 'remoshift' | 'company';
+export type WorkMode = 'remote' | 'hybrid' | 'onsite' | 'unknown';
+export type EmploymentType = 'full-time' | 'part-time' | 'internship' | 'contract' | 'unknown';
+
+export type Job = {
+  id: string;
+  source: JobSource;
+  sourceJobId: string;
+  companyId: string;
+  companyName: string;
+  title: string;
+  location: string;
+  country?: string;
+  countryCode?: string;
+  secondaryLocations?: string[];
+  description: string;
+  department?: string;
+  team?: string;
+  workMode: WorkMode;
+  remoteEligibility?: string;
+  employmentType: EmploymentType;
+  seniority?: string;
+  requiredExperience?: string;
+  requiredSkills: string[];
+  preferredSkills?: string[];
+  qualifications?: string[];
+  compensation?: string;
+  currency?: string;
+  applicationUrl: string;
+  publishedAt?: string;
+  updatedAt?: string;
+  fetchedAt: string;
+  isActive: boolean;
+  searchText: string;
+};
+
+export type CompanySourceConfig = {
+  companyId: string;
+  companyName: string;
+  source: Exclude<JobSource, 'company'>;
+  boardIdentifier: string;
+  enabled: boolean;
+  country?: string;
+  countryCode?: string;
+  verified?: boolean;
+};
+
+export type RawJob = {
+  sourceJobId?: string;
+  title?: string;
+  companyName?: string;
+  location?: string;
+  country?: string;
+  countryCode?: string;
+  secondaryLocations?: string[];
+  description?: string;
+  department?: string;
+  team?: string;
+  workMode?: string;
+  remoteEligibility?: string;
+  employmentType?: string;
+  seniority?: string;
+  requiredExperience?: string;
+  requiredSkills?: string[];
+  applicationUrl?: string;
+  preferredSkills?: string[];
+  qualifications?: string[];
+  compensation?: string;
+  currency?: string;
+  publishedAt?: string;
+  updatedAt?: string;
+};

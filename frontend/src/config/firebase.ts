@@ -3,6 +3,7 @@ import { FirebaseApp, getApp, getApps, initializeApp } from 'firebase/app';
 import { getAuth, initializeAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
+import { getFunctions } from 'firebase/functions';
 import * as FirebaseAuthNative from '@firebase/auth';
 import { Platform } from 'react-native';
 
@@ -23,6 +24,7 @@ const firebaseApp: FirebaseApp = getApps().length > 0 ? getApp() : initializeApp
 
 export const firestore = getFirestore(firebaseApp);
 export const storage = getStorage(firebaseApp);
+export const functions = getFunctions(firebaseApp);
 
 type AuthDependencies = Parameters<typeof initializeAuth>[1];
 type NativeAuthModule = typeof FirebaseAuthNative & {

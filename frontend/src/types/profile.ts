@@ -7,6 +7,14 @@ export type CandidatePreferences = {
   location: string;
   workMode: string;
   experienceLevel: string;
+  locationDetails?: {
+    displayName: string;
+    country: string;
+    countryCode: string;
+    state?: string;
+    city?: string;
+    postalCode?: string;
+  };
 };
 
 export type CandidateStats = {

@@ -1,6 +1,7 @@
 import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
 import type { User } from 'firebase/auth';
-import { auth, firestore, isFirebaseConfigured } from '../config/firebase';
+import { auth, firestore, functions, isFirebaseConfigured } from '../config/firebase';
 import type { CandidatePreferences, CandidateProfile } from '../types/profile';
 import type { ExtractedProfile } from '../types/resume';
 
@@ -62,4 +63,11 @@ export async function saveUserDisplayName(uid: string, displayName: string) {
     displayName: displayName.trim(),
     updatedAt: serverTimestamp(),
   }, { merge: true });
+}
+
+export async function refreshPersonalizedRecommendations() {
+  ensureFirebaseConfigured();
+  const refresh = httpsCallable<void, { recommendationCount: number }>(functions, 'refreshPersonalizedRecommendations');
+  const result = await refresh();
+  return result.data.recommendationCount;
 }
